@@ -2,8 +2,12 @@
 
 #include <QPainter>
 #include <QPaintEvent>
-#include <QDebug>
 #include <QOpenGLTexture>
+
+#include <complex>
+
+#include <QDebug>
+
 
 RandyGlueWidget::RandyGlueWidget(QWidget *parent)
 : QOpenGLWidget(parent), screenImageRef( nullptr )
@@ -28,6 +32,52 @@ QSize RandyGlueWidget::sizeHint() const
 	return QSize( 1024, 768 );
 }
 
+/***
+
+Code:
+#include <complex>
+#include <iostream>
+constexpr auto max_row = 22, max_column = 78, max_iteration = 20;
+int main(){
+	for(auto row = 0; row < max_row; ++row){
+		for(auto column = 0; column < max_column; ++column){
+			std::complex<float> z, c = {
+				(float)column * 2 / max_column - 1.5f,
+				(float)row * 2 / max_row - 1				
+			};
+			int iteration = 0;
+			while(abs(z) < 2 && ++iteration < max_iteration)
+				z = pow(z, 2) + c;
+			std::cout << (iteration == max_iteration ? '#' : '.');
+		}
+		std::cout << '\n';
+	}
+}
+
+***/
+
+int findMandyCount( double r, double i )
+{
+	std::complex<double> z( 0, 0 );
+	std::complex<double> c( r, i );
+
+	int itc = 0;
+	bool stop = false;
+
+	do {
+		z = pow(z,2) + c;
+		++itc;
+		if (abs(z) > 4)
+		{
+			stop = true;
+		}
+	} while ((itc < 255) && (!stop));
+	itc = itc & 0xff;
+	//qDebug() << "iterations: " << itc << "for" << r << i;
+
+	return itc;
+}
+
 void RandyGlueWidget::resizeGL(int width, int height)
 {
 	qDebug() << __FUNCTION__ << "invoked with " << width << "x" <<height;
@@ -42,17 +92,40 @@ void RandyGlueWidget::resizeGL(int width, int height)
 	QColor colorValue;
 	screenImageRef = new QImage( width, height, QImage::Format_RGB32 );
 
-	int i = 0;
-	for (int x = 0; x < width; ++x)
+	// screen to space translation
+	int screenWidth = 720;
+	int screenHeight = 720;
+
+	double margin = 2.0;
+	double left = -margin;
+	double right = margin;
+	double top = margin;
+	double bottom = -margin;
+
+	double stepx = (2.0*margin) / double(screenWidth);
+	double stepy = (2.0*margin) / double(screenHeight);
+
+
+	int col = 0;
+	double real = left;
+	double imag = top;
+
+	int padding = 15;
+
+	for (int y = 0; y < screenHeight; y++)
 	{
-		for (int y = 0; y < height; ++y)
+		real = left;
+		for (int x = 0; x < screenWidth; x++)
 		{
-			i = (x + y) & 0xff;
-			colorValue.setRgb( i, (i*4)%256, 255 - i );
-			screenImageRef->setPixelColor( x, y, colorValue );
-			//i = (i+1) & 0xff;
+			// lets use (real,imag)
+			col = findMandyCount( real, imag );
+			colorValue.setRgb( 0, col, 0 );
+			screenImageRef->setPixelColor( x+padding, y+padding, colorValue );
+
+			real += stepx;
 		}
-	}
+		imag -= stepy;
+}
 
 	glBuffer = *screenImageRef;
 }
