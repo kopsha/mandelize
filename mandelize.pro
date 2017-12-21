@@ -19,7 +19,7 @@ SOURCES += 	main.cpp \
 			mandyWindow.cpp \
 			randyGlue.cpp
 
-LIBS += -lOpengl32
+LIBS +=
 
 
 # Default rules for deployment.
