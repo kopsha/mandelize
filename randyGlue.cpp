@@ -32,30 +32,7 @@ QSize RandyGlueWidget::sizeHint() const
 	return QSize( 1024, 768 );
 }
 
-/***
-
-Code:
-#include <complex>
-#include <iostream>
-constexpr auto max_row = 22, max_column = 78, max_iteration = 20;
-int main(){
-	for(auto row = 0; row < max_row; ++row){
-		for(auto column = 0; column < max_column; ++column){
-			std::complex<float> z, c = {
-				(float)column * 2 / max_column - 1.5f,
-				(float)row * 2 / max_row - 1				
-			};
-			int iteration = 0;
-			while(abs(z) < 2 && ++iteration < max_iteration)
-				z = pow(z, 2) + c;
-			std::cout << (iteration == max_iteration ? '#' : '.');
-		}
-		std::cout << '\n';
-	}
-}
-
-***/
-
+//todo: refactor this method
 int findMandyCount( double r, double i )
 {
 	std::complex<double> z( 0, 0 );
@@ -92,6 +69,7 @@ void RandyGlueWidget::resizeGL(int width, int height)
 	QColor colorValue;
 	screenImageRef = new QImage( width, height, QImage::Format_RGB32 );
 
+	//todo: move rendering into another thread
 	// screen to space translation
 	int screenWidth = 721;
 	int screenHeight = 721;
