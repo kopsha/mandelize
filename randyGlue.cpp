@@ -93,14 +93,14 @@ void RandyGlueWidget::resizeGL(int width, int height)
 	screenImageRef = new QImage( width, height, QImage::Format_RGB32 );
 
 	// screen to space translation
-	int screenWidth = 720;
-	int screenHeight = 720;
+	int screenWidth = 721;
+	int screenHeight = 721;
 
 	double margin = 2.0;
 	double left = -margin;
-	double right = margin;
+	//double right = margin;
 	double top = margin;
-	double bottom = -margin;
+	//double bottom = -margin;
 
 	double stepx = (2.0*margin) / double(screenWidth);
 	double stepy = (2.0*margin) / double(screenHeight);
@@ -110,7 +110,7 @@ void RandyGlueWidget::resizeGL(int width, int height)
 	double real = left;
 	double imag = top;
 
-	int padding = 15;
+	int padding = 10;
 
 	for (int y = 0; y < screenHeight; y++)
 	{
@@ -125,7 +125,30 @@ void RandyGlueWidget::resizeGL(int width, int height)
 			real += stepx;
 		}
 		imag -= stepy;
-}
+	}
+
+	// draw axes
+	int oy = screenHeight/2;
+	int ox = screenWidth/2;
+	colorValue.setRgb( 0xff, 0xff, 0xff );
+	for (int x = 0; x < screenWidth; x++)
+	{
+		screenImageRef->setPixelColor( padding + x, padding + oy, colorValue );
+		if ((x % 180)==0)
+		{
+			for (int y = -4; y <= 4; y++)
+				screenImageRef->setPixelColor( padding + x, padding + oy + y, colorValue );
+		}
+	}
+	for (int y = 0; y < screenHeight; y++)
+	{
+		screenImageRef->setPixelColor( padding + ox, padding + y, colorValue );
+		if ((y % 180)==0)
+		{
+			for (int x = -4; x <= 4; x++)
+				screenImageRef->setPixelColor( padding + ox + x, padding + y, colorValue );
+		}
+	}
 
 	glBuffer = *screenImageRef;
 }
