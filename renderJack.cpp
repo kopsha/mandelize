@@ -44,22 +44,15 @@ void RenderJack::resizeFrame( const QSize& desiredSize )
 	{
 		this->size = desiredSize;
 
-		// redo some computing !?! or just trigger them
-		// rebuild bufferRef
-		if (bufferRef)
+		if (isRunning())
 		{
-			delete bufferRef;
-			bufferRef = nullptr;
+			shouldRestart = true;
+			condition.wakeOne();
 		}
-
-		bufferRef = new QImage( desiredSize, QImage::Format_RGB32 );
-
-	    if (!isRunning()) {
-	        start(LowPriority);
-	    } else {
-	        shouldRestart = true;
-	        condition.wakeOne();
-	    }
+		else
+		{
+			start( LowPriority );
+		}
 	}
 }
 
@@ -120,13 +113,23 @@ int RenderJack::findMandyCount( double r, double i )
 
 void RenderJack::run()
 {
-	qDebug() << __FUNCTION__ << "has begun";
-
 	QColor colorValue;
 
 	forever
 	{
-        muex.lock();
+		muex.lock();
+
+		// redo some computing !?! or just trigger them
+		// rebuild bufferRef
+		if (bufferRef)
+		{
+			delete bufferRef;
+			bufferRef = nullptr;
+		}
+
+		bufferRef = new QImage( size, QImage::Format_RGB32 );
+		qDebug() << "new frame size: " << size;
+
 
 		double lenF = 2.0;
 
@@ -139,11 +142,10 @@ void RenderJack::run()
 		double imag = area.top();
 		double real = left;
 
-		int padding = 10;	// pixels
 		int height = size.height();
 		int width = size.width();
 
-        muex.unlock();
+		muex.unlock();
 
 
 		for (int y = 0; y < height; y++)
@@ -170,7 +172,7 @@ void RenderJack::run()
 					colorValue.setRgb( 255+col, 0-col, 0 );
 				}
 
-				//bufferRef->setPixelColor( x+padding, y+padding, colorValue );
+				bufferRef->setPixelColor( x, y, colorValue );
 
 				real += stepx;
 			}
@@ -200,16 +202,14 @@ void RenderJack::run()
 			}
 		}
 		/********/
-		qDebug() << __FUNCTION__ << "shouldRestart == " << shouldRestart;
 
-        muex.lock();
-        if (!shouldRestart)
-        	emit frameIsReady();
-            condition.wait(&muex);
-        shouldRestart = false;
-        muex.unlock();
+		muex.lock();
+		if (!shouldRestart)
+		{
+			emit frameIsReady();
+			condition.wait(&muex);
+		}
+		shouldRestart = false;
+		muex.unlock();
 	}
-
-	qDebug() << __FUNCTION__ << "did ended";
-
 }

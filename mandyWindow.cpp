@@ -15,7 +15,7 @@ MandyApplicationWindow::MandyApplicationWindow()
 	horizLayout->addWidget( label, 0, Qt::AlignRight );
 	horizLayout->addWidget( statusLabelRef, 0, Qt::AlignLeft );
 
-	RandyGlueWidget *glw = new RandyGlueWidget( this );
+	RandyGlueWidget *glw = new RandyGlueWidget( this, statusLabelRef );
 
 	QVBoxLayout *verticalLayout = new QVBoxLayout;
 	verticalLayout->addLayout( horizLayout );

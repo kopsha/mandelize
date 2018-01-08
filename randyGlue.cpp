@@ -5,8 +5,9 @@
 #include <QDebug>
 
 
-RandyGlueWidget::RandyGlueWidget(QWidget *parent)
-: QOpenGLWidget(parent), screenImageRef( nullptr )
+RandyGlueWidget::RandyGlueWidget(QWidget *parent, QLabel* labelRef)
+	: QOpenGLWidget(parent)
+	, statusLabelRef( labelRef )
 {
 
 	QSizePolicy expand;
@@ -17,7 +18,7 @@ RandyGlueWidget::RandyGlueWidget(QWidget *parent)
 	setSizePolicy(expand);	
 
 
-    connect(&renderThread, SIGNAL(frameReady()), this, SLOT(thrFinished()));
+    connect(&renderThread, SIGNAL(frameIsReady()), this, SLOT(thrFinished()));
 
 }
 
@@ -25,17 +26,18 @@ void RandyGlueWidget::thrFinished()
 {
 	qDebug() << __FUNCTION__ << "was invoked";
 
-}
+	if (statusLabelRef)
+	{
+		statusLabelRef->setText( "Ready" );
+	}
 
-void RandyGlueWidget::thrStarted()
-{
-	qDebug() << __FUNCTION__ << "was invoked";
+	glBuffer = *renderThread.getBuffer();
 
+	update();
 }
 
 RandyGlueWidget::~RandyGlueWidget()
 {
-	delete screenImageRef;
 }
 
 QSize RandyGlueWidget::sizeHint() const
@@ -48,11 +50,14 @@ void RandyGlueWidget::resizeGL(int width, int height)
 {
 	qDebug() << __FUNCTION__ << "invoked with " << width << "x" <<height;
 
-	//todo: move rendering into another thread
 	viewSize = QSize( width, height );
-	renderThread.resizeFrame( viewSize );
 
-	//glBuffer = *screenImageRef;
+	if (statusLabelRef)
+	{
+		statusLabelRef->setText( "Busy" );
+	}
+
+	renderThread.resizeFrame( viewSize );
 }
 
 void RandyGlueWidget::paintGL()

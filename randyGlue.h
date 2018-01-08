@@ -5,13 +5,14 @@
 
 #include <QOpenGLWidget>
 #include <QImage>
+#include <QLabel>
 
 class RandyGlueWidget : public QOpenGLWidget
 {
 	Q_OBJECT
 
 public:
-	RandyGlueWidget(QWidget *parent);
+	RandyGlueWidget(QWidget *parent, QLabel* labelRef);
 	virtual ~RandyGlueWidget();
 	QSize sizeHint() const;
 
@@ -21,10 +22,9 @@ protected:
 
 private slots:
 	void thrFinished();
-	void thrStarted();
 
 private:
-	QImage *screenImageRef;
+	QLabel* statusLabelRef;
 	QImage glBuffer;
 
 	QSize viewSize;
