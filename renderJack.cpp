@@ -185,20 +185,20 @@ void RenderJack::run()
 		colorValue.setRgb( 0xff, 0xff, 0xff );
 		for (int x = 0; x < width; x++)
 		{
-			//bufferRef->setPixelColor( padding + x, padding + oy, colorValue );
+			bufferRef->setPixelColor( x, oy, colorValue );
 			if ((x % 180)==0)
 			{
-				//for (int y = -4; y <= 4; y++)
-					//bufferRef->setPixelColor( padding + x, padding + oy + y, colorValue );
+				for (int y = -4; y <= 4; y++)
+					bufferRef->setPixelColor( x, oy + y, colorValue );
 			}
 		}
 		for (int y = 0; y < height; y++)
 		{
-			//bufferRef->setPixelColor( padding + ox, padding + y, colorValue );
+			bufferRef->setPixelColor( ox, y, colorValue );
 			if ((y % 180)==0)
 			{
-				//for (int x = -4; x <= 4; x++)
-					//bufferRef->setPixelColor( padding + ox + x, padding + y, colorValue );
+				for (int x = -4; x <= 4; x++)
+					bufferRef->setPixelColor( ox + x, y, colorValue );
 			}
 		}
 		/********/

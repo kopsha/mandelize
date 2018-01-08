@@ -50,7 +50,8 @@ void RandyGlueWidget::resizeGL(int width, int height)
 {
 	qDebug() << __FUNCTION__ << "invoked with " << width << "x" <<height;
 
-	viewSize = QSize( width, height );
+	int squareLen = (width < height) ? width : height;
+	viewSize = QSize( squareLen, squareLen );
 
 	if (statusLabelRef)
 	{
