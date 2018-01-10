@@ -5,12 +5,13 @@
 #include <QDebug>
 
 RenderJack::RenderJack( QObject* parent )
-: QThread( parent )
-, frameBuffer( nullptr )
-, size( 1, 1 )
-, area( QPointF(-2.0,2.0), QPointF(2.0,-2.0) )
-, shouldRestart( false )
-, shouldAbort( false )
+	: QThread( parent )
+	, frameBuffer( nullptr )
+	, size( 1, 1 )
+	, area( QPointF(-2.0,2.0), QPointF(2.0,-2.0) )
+	, shouldRestart( false )
+	, shouldAbort( false )
+	, bufferNotProcessed( false )
 {
 }
 
@@ -35,6 +36,7 @@ void RenderJack::copyFrameTo( QImage& dest )
 {
 	QMutexLocker locker(&muex);
 	dest = frameBuffer->copy();
+	bufferNotProcessed = false;
 }
 
 bool RenderJack::resizeFrame( const QSize& desiredSize )
@@ -144,8 +146,12 @@ void RenderJack::run()
 
 		frameWidth = this->size.width();
 		frameHeight = this->size.height();
+		bool xx = this->bufferNotProcessed;
 
 		muex.unlock();
+
+		if (xx)
+			break;
 
 		// redo some computing !?! or just trigger them
 		// rebuild frameBuffer
@@ -228,6 +234,7 @@ void RenderJack::run()
 		else
 		{
 			emit frameIsReady();
+			bufferNotProcessed = true;
 			condition.wait(&muex);
 		}
 		muex.unlock();

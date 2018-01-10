@@ -38,6 +38,7 @@ private:
 
 	bool 	shouldRestart;
 	bool 	shouldAbort;
+	bool	bufferNotProcessed;
 };
 
 #endif
