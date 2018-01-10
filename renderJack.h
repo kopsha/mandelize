@@ -14,12 +14,12 @@ public:
 	explicit RenderJack( QObject* parent = Q_NULLPTR );
 	virtual ~RenderJack();
 
-	void resizeFrame( const QSize& desiredSize );
+	bool resizeFrame( const QSize& desiredSize );
 	void requestNewFrame( const QRect& visibleArea );
 
 	void run() override;
 
-	const QImage* getBuffer() const;
+	void copyFrameTo( QImage& dest );
 
 signals:
 	void frameIsReady();
@@ -31,7 +31,7 @@ private:
 	QMutex	muex;
 	QWaitCondition condition;
 
-	QImage* bufferRef;
+	QImage* frameBuffer;
 
 	QSize	size;
 	QRectF	area;

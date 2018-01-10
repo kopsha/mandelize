@@ -8,17 +8,30 @@ MandyApplicationWindow::MandyApplicationWindow()
 {
 	setWindowTitle( tr("gluing it all together") );
 
+	// status panel
 	QLabel* label = new QLabel( tr("Status:") );
-	statusLabelRef = new QLabel( tr("Ready") );
+	statusLabel = new QLabel( tr("Ready") );
 
-	QHBoxLayout* horizLayout = new QHBoxLayout;
-	horizLayout->addWidget( label, 0, Qt::AlignRight );
-	horizLayout->addWidget( statusLabelRef, 0, Qt::AlignLeft );
+	QGridLayout* statusPanelLayout = new QGridLayout();
+	statusPanelLayout->addWidget( label, 0, 0, Qt::AlignRight );
+	statusPanelLayout->addWidget( statusLabel, 0, 1, Qt::AlignLeft );
 
-	RandyGlueWidget *glw = new RandyGlueWidget( this, statusLabelRef );
 
-	QVBoxLayout *verticalLayout = new QVBoxLayout;
-	verticalLayout->addLayout( horizLayout );
-	verticalLayout->addWidget( glw );
-	setLayout( verticalLayout );
+	RandyGlueWidget *glw = new RandyGlueWidget( this, statusLabel );
+
+	QHBoxLayout *mainLayout = new QHBoxLayout;
+	mainLayout->addWidget( glw );
+	mainLayout->addLayout( statusPanelLayout );
+
+	// apply setup
+	setLayout( mainLayout );
+}
+
+MandyApplicationWindow::~MandyApplicationWindow()
+{
+	if (statusLabel)
+	{
+		delete statusLabel;
+		statusLabel = nullptr;
+	}
 }

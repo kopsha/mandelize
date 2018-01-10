@@ -10,9 +10,10 @@ class MandyApplicationWindow : public QWidget
 
 public:
 	MandyApplicationWindow();
+	~MandyApplicationWindow();
 
 private:
-	QLabel* statusLabelRef;
+	QLabel* statusLabel;
 };
 
 #endif

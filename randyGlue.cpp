@@ -6,10 +6,9 @@
 
 
 RandyGlueWidget::RandyGlueWidget(QWidget *parent, QLabel* labelRef)
-	: QOpenGLWidget(parent)
+	: QOpenGLWidget( parent )
 	, statusLabelRef( labelRef )
 {
-
 	QSizePolicy expand;
 	setAutoFillBackground( false );
 
@@ -17,21 +16,22 @@ RandyGlueWidget::RandyGlueWidget(QWidget *parent, QLabel* labelRef)
 	expand.setVerticalPolicy(QSizePolicy::Expanding);
 	setSizePolicy(expand);	
 
-
-    connect(&renderThread, SIGNAL(frameIsReady()), this, SLOT(thrFinished()));
-
+    connect( &renderThread, SIGNAL(frameIsReady()),
+    		 this, 			SLOT(thrFinished()),
+    		 Qt::QueuedConnection );
 }
 
 void RandyGlueWidget::thrFinished()
 {
 	qDebug() << __FUNCTION__ << "was invoked";
 
+	renderThread.copyFrameTo( glBufferCopy );
+
 	if (statusLabelRef)
 	{
 		statusLabelRef->setText( "Ready" );
+		statusLabelRef->update();
 	}
-
-	glBuffer = *renderThread.getBuffer();
 
 	update();
 }
@@ -45,7 +45,6 @@ QSize RandyGlueWidget::sizeHint() const
 	return QSize( 1024, 768 );
 }
 
-
 void RandyGlueWidget::resizeGL(int width, int height)
 {
 	qDebug() << __FUNCTION__ << "invoked with " << width << "x" <<height;
@@ -53,19 +52,31 @@ void RandyGlueWidget::resizeGL(int width, int height)
 	int squareLen = (width < height) ? width : height;
 	viewSize = QSize( squareLen, squareLen );
 
-	if (statusLabelRef)
+	bool willRedraw = renderThread.resizeFrame( viewSize );
+
+	if (statusLabelRef && willRedraw)
 	{
 		statusLabelRef->setText( "Busy" );
+		statusLabelRef->update();
 	}
 
-	renderThread.resizeFrame( viewSize );
 }
 
 void RandyGlueWidget::paintGL()
 {
 
-	glPixelStorei(GL_UNPACK_ROW_LENGTH, glBuffer.bytesPerLine()/4 );
-	glDrawPixels( glBuffer.width(), glBuffer.height(), GL_RGBA, GL_UNSIGNED_BYTE, glBuffer.bits() );
+	if (!glBufferCopy.isNull())
+	{
+		// todo:
+		// * add a small padding
+		// * center image to widget
+		glPixelStorei(GL_UNPACK_ROW_LENGTH, glBufferCopy.bytesPerLine()/4 );
+		glDrawPixels( glBufferCopy.width(), glBufferCopy.height(), GL_RGBA, GL_UNSIGNED_BYTE, glBufferCopy.bits() );
+	}
+	else
+	{
+		qDebug() << "Paint requested, but no image available";
+	}
 
 	//qDebug() << "glGetError: " << glGetError();
 }

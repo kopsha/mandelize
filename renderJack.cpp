@@ -6,8 +6,8 @@
 
 RenderJack::RenderJack( QObject* parent )
 : QThread( parent )
-, bufferRef( nullptr )
-, size( 1024, 768 )
+, frameBuffer( nullptr )
+, size( 1, 1 )
 , area( QPointF(-2.0,2.0), QPointF(2.0,-2.0) )
 , shouldRestart( false )
 , shouldAbort( false )
@@ -24,25 +24,28 @@ RenderJack::~RenderJack()
 	wait();
 
     // safe cleanup...
-	if (bufferRef)
+	if (frameBuffer)
 	{
-		delete bufferRef;
-		bufferRef = nullptr;
+		delete frameBuffer;
+		frameBuffer = nullptr;
 	}
 }
 
-const QImage* RenderJack::getBuffer() const
-{
-	return bufferRef;
-}
-
-void RenderJack::resizeFrame( const QSize& desiredSize )
+void RenderJack::copyFrameTo( QImage& dest )
 {
 	QMutexLocker locker(&muex);
+	dest = frameBuffer->copy();
+}
 
-	if (this->size != desiredSize)
+bool RenderJack::resizeFrame( const QSize& desiredSize )
+{
+	static bool willRedraw;
+
+	QMutexLocker locker(&muex);
+
+	if (size != desiredSize)
 	{
-		this->size = desiredSize;
+		size = desiredSize;
 
 		if (isRunning())
 		{
@@ -53,11 +56,19 @@ void RenderJack::resizeFrame( const QSize& desiredSize )
 		{
 			start( LowPriority );
 		}
+		willRedraw = true;
 	}
+	else
+	{
+		willRedraw = false;
+	}
+
+	return willRedraw;
 }
 
 void RenderJack::requestNewFrame( const QRect& visibleArea )
 {
+	// *** !!!not used yet!!! ***
 	QMutexLocker locker(&muex);
 
 	if (this->area != visibleArea)
@@ -110,106 +121,115 @@ int RenderJack::findMandyCount( double r, double i )
 	return itc;
 }
 
-
 void RenderJack::run()
 {
-	QColor colorValue;
+	static QColor colorValue;
+	static const double lenF = 2.0;
+
+	int frameWidth;
+	int frameHeight;
+	int linearColor;
+	int ox, oy, axUnit;
+	double stepX;
+	double stepY;
+	const double left = this->area.left();
+	const double top = this->area.top();
+
+	double real;
+	double imag;
 
 	forever
 	{
 		muex.lock();
 
-		// redo some computing !?! or just trigger them
-		// rebuild bufferRef
-		if (bufferRef)
-		{
-			delete bufferRef;
-			bufferRef = nullptr;
-		}
-
-		bufferRef = new QImage( size, QImage::Format_RGB32 );
-		qDebug() << "new frame size: " << size;
-
-
-		double lenF = 2.0;
-
-		double stepx = (2.0*lenF) / double(size.width());
-		double stepy = (2.0*lenF) / double(size.height());
-
-
-		int col = 0;
-		double left = area.left();
-		double imag = area.top();
-		double real = left;
-
-		int height = size.height();
-		int width = size.width();
+		frameWidth = this->size.width();
+		frameHeight = this->size.height();
 
 		muex.unlock();
 
-
-		for (int y = 0; y < height; y++)
+		// redo some computing !?! or just trigger them
+		// rebuild frameBuffer
+		if (frameBuffer)
 		{
-			if (shouldAbort)
+			delete frameBuffer;
+			frameBuffer = nullptr;
+		}
+
+		// q: is there a smarter way to rebuild frame without realloc ?
+		frameBuffer = new QImage( frameWidth, frameHeight, QImage::Format_RGB32 );
+		qDebug() << __FUNCTION__ << "new frame size: " << frameWidth;
+
+		stepX = (2.0*lenF) / double(frameWidth);
+		stepY = (2.0*lenF) / double(frameHeight);
+
+		linearColor = 0;
+		imag = top;
+
+		for (int y = 0; y < frameHeight; y++)
+		{
+			// check the flags
+			if (this->shouldAbort)
 			{
 				return;
 			}
-			if (shouldRestart)
+			if (this->shouldRestart)
 			{
 				break;
 			}
+
 			real = left;
-			for (int x = 0; x < width; x++)
+			for (int x = 0; x < frameWidth; x++)
 			{
-				// lets use (real,imag)
-				col = findMandyCount( real, imag );
-				if (col >= 0)
+				linearColor = findMandyCount( real, imag );
+				if (linearColor >= 0)
 				{
-					colorValue.setRgb( 0, col, 0 );
+					colorValue.setRgb( 0, linearColor, 0 );
 				}
 				else
 				{
-					colorValue.setRgb( 255+col, 0-col, 0 );
+					colorValue.setRgb( 255+linearColor, 0-linearColor, 0 );
 				}
-
-				bufferRef->setPixelColor( x, y, colorValue );
-
-				real += stepx;
+				frameBuffer->setPixelColor( x, y, colorValue );
+				real += stepX;
 			}
-			imag -= stepy;
+			imag -= stepY;
 		}
 
 		// draw axes
-		int oy = height/2;
-		int ox = width/2;
+		oy = frameHeight/2;
+		ox = frameWidth/2;
+		axUnit = frameWidth / 4;
 		colorValue.setRgb( 0xff, 0xff, 0xff );
-		for (int x = 0; x < width; x++)
+		for (int x = 0; x < frameWidth; x++)
 		{
-			bufferRef->setPixelColor( x, oy, colorValue );
-			if ((x % 180)==0)
+			frameBuffer->setPixelColor( x, oy, colorValue );
+			if ((x % axUnit)==0)
 			{
 				for (int y = -4; y <= 4; y++)
-					bufferRef->setPixelColor( x, oy + y, colorValue );
+					frameBuffer->setPixelColor( x, oy + y, colorValue );
 			}
 		}
-		for (int y = 0; y < height; y++)
+		for (int y = 0; y < frameHeight; y++)
 		{
-			bufferRef->setPixelColor( ox, y, colorValue );
-			if ((y % 180)==0)
+			frameBuffer->setPixelColor( ox, y, colorValue );
+			if ((y % axUnit)==0)
 			{
 				for (int x = -4; x <= 4; x++)
-					bufferRef->setPixelColor( ox + x, y, colorValue );
+					frameBuffer->setPixelColor( ox + x, y, colorValue );
 			}
 		}
 		/********/
 
 		muex.lock();
-		if (!shouldRestart)
+		if (shouldRestart)
+		{
+			shouldRestart = false;
+		}
+		else
 		{
 			emit frameIsReady();
 			condition.wait(&muex);
 		}
-		shouldRestart = false;
 		muex.unlock();
 	}
 }

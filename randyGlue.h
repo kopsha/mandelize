@@ -25,7 +25,7 @@ private slots:
 
 private:
 	QLabel* statusLabelRef;
-	QImage glBuffer;
+	QImage glBufferCopy;
 
 	QSize viewSize;
 
